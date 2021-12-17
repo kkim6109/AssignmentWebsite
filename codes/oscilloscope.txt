@@ -1,0 +1,185 @@
+//***************************************************************************
+// Kevin Kim
+// Audio Visualizer
+//
+// Oscilloscope audio visualizer
+//***************************************************************************
+import java.awt.Color;
+import java.awt.Frame;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map.Entry;
+
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.FloatControl;
+import javax.swing.JApplet;
+
+
+public class AudioVisualizer extends JApplet implements Runnable {
+
+	//private boolean[][][] grid;
+	private GridPoint[][] grid;
+	public static Rainbow rainbow;
+	private final static int PIXELS = 600;
+	int divisor;
+	Clip clip;
+	private final static long WAIT_MICROSECONDS = 33333;
+	int totalFrames;
+	int curFrame = 0;
+	int amtShorts;
+	int tWidth;
+	int tHeight;
+
+	//--------------------------------------------------------------
+	//sets up the solver and the grid
+	//--------------------------------------------------------------
+	public void init()
+	{
+		String songName = "comfy vibes";
+		File song = null;
+		try
+		{
+			song = new File(System.getProperty("user.dir") + "\\" + songName + ".wav");
+			AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(song);
+			clip = AudioSystem.getClip();
+			clip.open(audioInputStream);
+			//clip.setMicrosecondPosition(clip.getMicrosecondLength() / 10 * 5);
+			FloatControl gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+			gainControl.setValue(-20.0f); // Reduce volume by 20 decibels.
+			audioInputStream.close();
+		} catch (Exception e)
+		{
+			System.out.println(e.getMessage());
+			System.exit(0);
+		}
+		while (clip == null) {
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		int maxAmt = Short.MIN_VALUE * 2;
+		divisor = maxAmt / PIXELS;
+		totalFrames = (int)(clip.getMicrosecondLength() / WAIT_MICROSECONDS);
+		//grid = new boolean[totalFrames][PIXELS + 1][PIXELS + 1];
+
+		convertAudioToShort(song);
+
+		System.out.println("Length: " + clip.getMicrosecondLength());
+
+		int size = (int)Math.sqrt(Math.pow(PIXELS, 2) * 2) + 1;
+		this.setSize(size, size); // sets the size of the app
+		rainbow = new Rainbow();
+		rainbow.size = 5f;//WAIT_MICROSECONDS / 1333;// make it much lower when actually animating
+		Thread t = new Thread(this);
+		Frame c1 = (Frame)this.getParent().getParent();
+		c1.setTitle(songName);
+		t.start();
+		
+		tWidth = PIXELS/2 + size/6;
+		tHeight = PIXELS/-4 + size/6;
+	}
+
+	public void convertAudioToShort(File song)
+	{
+		byte[] temp = new byte[0];
+		short[] shorts = new short[0];
+		try {
+			AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(song);
+			temp = new byte[(int)audioInputStream.available()];
+			audioInputStream.read(temp);
+			shorts = new short[temp.length/2];
+			// to turn bytes to shorts as either big endian or little endian. 
+			ByteBuffer.wrap(temp).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts);
+			temp = null;
+			audioInputStream.close();
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+
+		amtShorts = shorts.length/2/totalFrames;
+
+		grid = new GridPoint[totalFrames][amtShorts];
+
+		for (int i = 0; i < totalFrames; i++)
+		{
+			int location = i * amtShorts * 2;
+			for (int j = 0; j < amtShorts; j++)
+			{
+				int x = shorts[location + j * 2] / divisor + PIXELS / 2;
+				int y = shorts[location + j * 2 + 1] / divisor + PIXELS / 2;
+				grid[i][j] = new GridPoint(x, y);
+			}
+		}
+		System.out.println(totalFrames * amtShorts + " " + shorts.length);
+	}
+
+	//--------------------------------------------------------------
+	//paints the finished grid out
+	//--------------------------------------------------------------
+	public void paint (Graphics g)
+	{
+		Image temp = createImage(this.getWidth(), this.getHeight());
+		Graphics page = temp.getGraphics();
+		page.setColor(new Color(0.2f, 0.2f, 0.2f)); // background
+		page.fillRect(0, 0, this.getWidth(), this.getHeight());
+		int[] xs = new int[amtShorts];
+		int[] ys = new int[amtShorts];
+		page.setColor(rainbow.nextColor());
+		Graphics2D g2d = (Graphics2D)page;
+		g2d.translate(tWidth, tHeight);
+		g2d.rotate(0.785398);
+		for (int i = 0; i < amtShorts; i++) // width
+		{
+			GridPoint point = grid[curFrame][i];
+			page.fillOval(point.x - 1, point.y - 1, 3, 3);
+			xs[i] = point.x;
+			ys[i] = point.y;
+		}
+		//page.fillPolygon(xs, ys, amtShorts);
+		//page.drawPolyline(xs, ys, amtShorts);
+		g.drawImage(temp, 0, 0, this);
+		temp.flush();
+		page.dispose();
+	}
+
+	//--------------------------------------------------------------
+	//Loops the paint
+	//--------------------------------------------------------------
+	public void run() {
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		clip.start();
+		long sleepTimer = WAIT_MICROSECONDS/1000;
+		while (true) {
+			try {
+				Thread.sleep(sleepTimer);//20
+				curFrame = (int)(clip.getMicrosecondPosition() / WAIT_MICROSECONDS);
+			} catch (Exception e) {
+				e.printStackTrace();
+				break;
+			}
+			if (curFrame >= totalFrames)
+			{
+				System.exit(0);
+				break;
+			}
+			repaint();
+		}
+	}
+}

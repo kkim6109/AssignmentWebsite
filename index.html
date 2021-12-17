@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="css/index.css">
+<title>Kevin Kim</title>
+</head>
+
+<body ondragstart="return false" onresize="updateBackground">
+	<div class="header">
+		<nav>
+			<ul>
+				<li><a href="index.html"><button style="background-color: #3A3A3A; color: #FFFFFF; border-bottom: 1px solid #3A3A3A;">Home</button></a></li>
+				<li><a href="example_gallery.html"><button>Example Gallery</button></a></li>
+			</ul>
+		</nav>
+		<h1>Kevin Kim ᛫ Programmer</h1>
+	</div>
+	<canvas id="back"> </canvas>
+	<div class="content" height="1080px" width="1920px">
+		<div class="inner_content" id="oscilloscope_inner">
+			<video controls id="oscilloscope_video">
+				<source src="videos/oscilloscope.mp4" type="video/mp4">
+			</video>
+			<div id="oscilloscope_code">
+				<iframe src="codes/oscilloscope.txt"></iframe>
+			</div>
+		</div>
+		<div class="content_footer">
+			<button onClick="DisplayCode()" id="oscilloscope" class="view_button">View Code</button>
+		</div>
+	</div>
+	<div class="text_content">
+		<h4>Hey, I am Kevin Kim, a senior at the University of Wisconsin-Madison majoring in computer science. The video above is an example of one of my codes in action. It is one of my visually artistic codes that I have made in the past to show that I enjoy the challenge of testing random ideas and bringing them to life.</h4>
+		<h6>The song used in this video is called <a href="https://www.youtube.com/watch?v=WwXJrMhbi-s">comfy vibes ♫</a> from a channel called <a href="https://www.youtube.com/channel/UCde_xnXu2lPBmRgAp_nq29A">comfi beats</a> with the creator stating that anyone may use their songs with credits in videos or streams. <a href="https://twitter.com/lilypichu/status/1282262110949392384?lang=en">source</a></h6>
+	</div>
+	<br />
+	<div class="footer">
+		<p><a href="mailto: kkim6109@gmail.com">Email: kkim6109@gmail.com</a>    -    <a href="https://github.com/kkim6109/">GitHub: kkim6109</a></p>
+	</div>
+
+	<script>
+		function DisplayCode() {
+			var isDisplayed = document.getElementById("oscilloscope_code").style.display === "block";
+			document.getElementById("oscilloscope_video").style.display = isDisplayed ? "block" : "none";
+			document.getElementById("oscilloscope_code").style.display = isDisplayed ? "none" : "block";
+			document.getElementById("oscilloscope").textContent = isDisplayed ? "View Code" : "View Program";
+			document.getElementById("oscilloscope_inner").style.backgroundColor = isDisplayed ? "#000000" : "#eee";
+		}
+
+		function updateBackground() {
+			var canvas = document.getElementById("back");
+			var rct = canvas.getContext("2d");
+			var width = document.body.clientWidth;
+			var height = window.innerHeight;
+			rct.canvas.width = width;
+			rct.canvas.height = document.body.scrollHeight;
+			rct.beginPath();
+			rct.lineWidth = 5;
+			rct.strokeStyle = "#0000FF";
+			rct.moveTo(0, height / 8);
+			rct.lineTo(width, height / 5 * 2.6);
+			rct.moveTo(width, height / 4);
+			rct.lineTo(0, height * 1.1);
+			rct.stroke();
+		}
+
+		window.addEventListener("resize", updateBackground);
+
+		updateBackground();
+		setInterval(function () {
+			console.log("test");
+		}, 1000);
+	</script>
+</body>
+</html>
